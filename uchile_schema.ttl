@@ -1,0 +1,77 @@
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix clips: <http://www.rdfclip.com/schema#> .
+@prefix nfo: <http://www.semanticdesktop.org/ontologies/2007/03/22/nfo#> .
+@prefix nie: <http://www.semanticdesktop.org/ontologies/2007/01/19/nie#> .
+@prefix uchiles: <http://www.rdfclip.com/schema/uchile#> .
+
+
+#classes
+uchiles:Contexto        rdf:type        rdfs:Class;
+                        rdfs:label      "Contexto" ;
+                        rdfs:subClassOf rdfs:resource ;
+                        clips:userLabel "Contexto de un Curso" .
+
+uchiles:InstanciaCurso   rdf:type        rdfs:Class ;
+                        rdfs:label      "InstanciaCurso" ;
+                        rdfs:subClassOf rdfs:resource ;
+                        clips:userLabel "Instancia de Curso" .
+
+uchiles:Curso            rdf:type        rdfs:Class ;
+                        rdfs:label      "Curso" ;
+                        rdfs:subClassOf rdfs:resource ;
+                        clips:userLabel "Curso" .
+
+uchiles:MaterialDocente  rdf:type        rdfs:Class ;
+                        rdfs:label      "MaterialDocente" ;
+                        rdfs:subClassOf rdfs:resource ;
+                        clips:userLabel "Material Docente" .
+
+uchiles:GradoVisibilidad     rdf:type        rdfs:Class ;
+                            rdfs:label      "GradoVisibilidad" ;
+                            rdfs:subClassOf rdfs:resource ;
+                            clips:userLabel "Grado de visibilidad" .
+
+#properties
+uchiles:contextoCurso   rdf:type        rdf:Property;
+                        rdfs:label      "ContextoCurso";
+                        rdfs:range      uchiles:Contexto;
+                        rdfs:domain     uchiles:Curso ;
+                        clips:userLabel  "Contexto del Curso" .
+
+uchiles:curso            rdf:type        rdf:Property;
+                        rdfs:label      "Curso";
+                        rdfs:range      uchiles:Curso;
+                        rdfs:domain     uchiles:InstanciaCurso ;
+                        clips:userLabel  "Curso" .
+
+uchiles:codigoCurso      rdf:type        rdf:Property;
+                        rdfs:label      "codigoCurso";
+                        rdfs:range      rdfs:Literal;
+                        rdfs:domain     uchiles:Curso ;
+                        clips:userLabel  "Codigo curso" .
+
+uchiles:tipoCurso       rdf:type        rdf:Property;
+                        rdfs:label      "tipoCurso";
+                        rdfs:range      rdfs:Literal;
+                        rdfs:domain     uchiles:Curso ;
+                        clips:userLabel  "Tipo" .
+
+uchiles:annoCurso        rdf:type        rdf:Property;
+                        rdfs:label      "annoCurso";
+                        rdfs:range      rdfs:Literal;
+                        rdfs:domain     uchiles:InstanciaCurso ;
+                        clips:userLabel  "A~no" .
+
+uchiles:seccionCurso    rdf:type        rdf:Property;
+                        rdfs:label      "seccionCurso";
+                        rdfs:range      rdfs:Literal;
+                        rdfs:domain     uchiles:InstanciaCurso ;
+                        clips:userLabel  "Seccion" .
+
+uchiles:instanciaCurso  rdf:type        rdf:Property;
+                        rdfs:label      "instanciaCurso";
+                        rdfs:range      rdfs:InstanciaCurso;
+                        rdfs:domain     uchiles:MaterialDocente ;
+                        clips:userLabel  "Curso de origen" .
+
