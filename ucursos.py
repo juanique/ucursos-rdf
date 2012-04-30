@@ -1,6 +1,6 @@
 from xml.etree import ElementTree
-from rdflib import Graph, Literal
-from namespaces import CLIP, RDFS, UCHILE, UCHILES, CLIPS
+from rdflib import Graph, Literal, URIRef
+from namespaces import CLIP, RDFS, UCHILE, UCHILES, CLIPS, RDF
 
 class ElementWrapper(object):
 
@@ -59,6 +59,7 @@ def xml_to_graph(filename):
             material.curso.semestre, material.curso.seccion)]
         curso = UCHILE["curso_%s" % material.curso.codigo]
 
+        graph.add((curso, RDF['type'], UCHILES['Curso']))
         graph.add((sub, UCHILES['instanciaCurso'], instancia_curso))
         graph.add((instancia_curso, UCHILES['curso'], curso))
         graph.add((curso, UCHILES['contextoCurso'], contexto))
@@ -68,5 +69,6 @@ def xml_to_graph(filename):
         graph.add((curso, RDFS['label'], material.curso.codigo))
         graph.add((curso, CLIPS['userLabel'],
             get_course_user_label(material.curso)))
+        graph.add((sub, CLIPS['indirectDownloadLink'], URIRef(material.url)))
 
     return graph

@@ -30,6 +30,31 @@ html
             input.span10(type="text")
             button.btn-search.btn.btn-primary Buscar
 
+      .row
+        .span12.results-container
+
+    script#suggest-item-tmpl(type='text/template')
+      li ${type} ${long_name}
+
+    script#results-table-tmpl(type="text/template")
+      table.table
+        thead
+          tr
+            th #
+            th
+            th Nombre
+            th Descargar
+        tbody
+          {{each(i, row) rows}}
+          tr
+            td ${i+1}
+            td ${row.codigo}
+            td ${row.name}
+            td
+              a(href="${row.link}") U-Cursos
+          {{/each}}
+
+
     script(type="text/javascript",
       src="http://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.3.1/underscore-min.js")
     script(type="text/javascript",
@@ -41,6 +66,7 @@ html
 
     script(type="text/javascript", src="js/lib/jquery-fieldselection.pack.js")
     script(type="text/javascript", src="js/jquery.extensions.js")
+    script(type="text/javascript", src="js/lib/vendor/jquery.tmpl.min.js")
     script(type="text/javascript", src="js/lib/oop.js")
     script(type="text/javascript", src="js/lib/notifier.js")
     script(type="text/javascript", src="js/lib/dropdown-list.js")

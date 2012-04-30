@@ -19,6 +19,35 @@ app.use express.compiler(src: srcDir, dest: publicDir, enable: ["coffeescript", 
 app.use express.static(publicDir)
 app.use express.bodyParser()
 
+proxyHost = "localhost"
+proxyPort = "8890"
+
+app.all /^\/sparql\/(.*)/, (request, response) ->
+    proxy_url = request.originalUrl
+    console.log "redirecting to : #{proxy_url}"
+
+    postData = JSON.stringify(request.body)
+
+    postOptions =
+        host: proxyHost
+        port: proxyPort
+        path: proxy_url
+        method: request.method
+        headers: request.headers
+
+    postReq = http.request postOptions, (proxy_response) ->
+        proxy_response.addListener "data", (chunk) ->
+            response.write chunk, "binary"
+
+        proxy_response.addListener "end", ->
+            response.end()
+
+        response.writeHead proxy_response.statusCode, proxy_response.headers
+
+    if postData
+      postReq.write(postData)
+    postReq.end()
+
 app.get /^\/$/, (req, res) ->
   res.render "index.jade", layout: false
 
