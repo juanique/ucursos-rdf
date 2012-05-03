@@ -19,10 +19,8 @@ app.use express.compiler(src: srcDir, dest: publicDir, enable: ["coffeescript", 
 app.use express.static(publicDir)
 app.use express.bodyParser()
 
-proxyHost = "localhost"
-proxyPort = "8890"
 
-app.all /^\/sparql\/(.*)/, (request, response) ->
+proxy = (request, response, proxyHost, proxyPort) ->
     proxy_url = request.originalUrl
     console.log "redirecting to : #{proxy_url}"
 
@@ -47,6 +45,13 @@ app.all /^\/sparql\/(.*)/, (request, response) ->
     if postData
       postReq.write(postData)
     postReq.end()
+
+app.all /^\/sparql\/(.*)/, (request, response) ->
+  proxy(request, response, "www.rdfclip.com", 8890)
+
+app.all /^\/api\/(.*)/, (request, response) ->
+  proxy(request, response, "www.rdfclip.com", 80)
+
 
 app.get /^\/$/, (req, res) ->
   res.render "index.jade", layout: false

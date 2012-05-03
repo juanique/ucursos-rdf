@@ -1,7 +1,46 @@
+class Synchronizer
+
+  """
+  The Synchronizer class allows to sync up a number of async calls.
+
+  synchronizer = new Synchronizer()
+  synchronizer.when ['ImReady','MeToo'], =>
+    doSomething()
+
+  anAsyncProcess callback: => synchronizer.ready "ImReady"
+  anotherAsyncProcess callback: => synchronizer.ready "MeToo"
+
+  """
+
+  constructor: ->
+    @eventsReady = {}
+    @callbacks = []
+
+  ready: (name) ->
+    @eventsReady[name] = true
+    @triggerReadyCallbacks()
+
+  when: (events, callback) ->
+    @callbacks.push
+      events: events
+      callback: callback
+    @triggerReadyCallbacks()
+
+  triggerReadyCallbacks: ->
+    for data in @callbacks
+      for event in data.events
+        if @eventsReady[event]
+          data.events = _.without data.events, event
+      if data.events.length == 0
+        @callbacks = _.without @callbacks, data
+        data.callback? (null)
+
+
 RegExp.escape = (text) -> text.replace /[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&"
 conn = new RDF.AjaxEndpointConnection("/sparql/")
 
-lastQuery = false
+lastCoursesQuery = false
+lastContextQuery= false
 
 sparqlPrefixes = """
     PREFIX uchile: <http://www.rdfclip.com/resources/uchile#>
@@ -11,10 +50,6 @@ sparqlPrefixes = """
     PREFIX clips: <http://www.rdfclip.com/schema#>
 """
 
-row = {
-  name: 'Support Vector Machines'
-}
-
 getKeywords = ->
   $textNodes = $(".textareaMagicDiv").contents().filter -> this.nodeType == Node.TEXT_NODE
   return $.trim($textNodes.text())
@@ -23,11 +58,15 @@ filteredSearchByCourse = (options) ->
   options.extraFilter = options.extraFilter || ""
 
   sparql = sparqlPrefixes + """
-      SELECT ?file, ?label, "#{options.codigo}" as ?codigoCurso, ?link FROM <http://ucursos.rdfclip.com/> WHERE {
+      SELECT DISTINCT ?file, ?label, "#{options.codigo}" as ?codigoCurso, ?link, ?directLink FROM <http://ucursos.rdfclip.com/> WHERE {
         ?file rdfs:label ?label .
-        ?file clips:indirectDownloadLink ?link .
-        ?file uchiles:instanciaCurso ?instancia .
-        ?instancia uchiles:curso #{options.curso} .
+        OPTIONAL {
+          ?file clips:indirectDownloadLink ?link .
+        }
+        OPTIONAL {
+          ?file clips:directDownloadLink ?directLink .
+        }
+        ?file uchiles:curso #{options.curso} .
         #{options.extraFilter}
       }
       LIMIT 10
@@ -39,12 +78,16 @@ filteredSearchByContext = (options) ->
   options.extraFilter = options.extraFilter || ""
 
   sparql = sparqlPrefixes + """
-      SELECT ?file, ?label, ?codigoCurso, ?link FROM <http://ucursos.rdfclip.com/> WHERE {
+      SELECT DISTINCT ?file, ?label, ?curso, ?codigoCurso, ?link, ?directLink FROM <http://ucursos.rdfclip.com/> WHERE {
         ?file rdfs:label ?label .
-        ?file clips:indirectDownloadLink ?link .
-        ?file uchiles:instanciaCurso ?instancia .
-        ?instancia uchiles:curso ?curso .
+        ?file uchiles:curso ?curso .
         ?curso uchiles:codigoCurso ?codigoCurso .
+        OPTIONAL {
+          ?file clips:indirectDownloadLink ?link .
+        }
+        OPTIONAL {
+          ?file clips:directDownloadLink ?directLink .
+        }
         #{options.extraFilter}
       }
       LIMIT 10
@@ -64,8 +107,9 @@ filteredSearch = (options) ->
         rows.push
           name: row['label']
           codigo: row['codigoCurso']
-          link: row['link']
+          link: row['link'] or ""
           uri: row['file']
+          directLink: row['directLink'] or ""
 
       options.success? (rows)
 
@@ -105,7 +149,8 @@ searchFiles = ->
   for course in courses
     extraFilter = baseFilter
     filteredSearchByCourse
-      curso: "<#{course}>"
+      curso: "<#{course.uri}>"
+      codigo: course.codigo
       extraFilter: extraFilter
       success: (newRows) ->
         mergeRows(rows, newRows)
@@ -122,29 +167,9 @@ searchFiles = ->
 
   return
 
-  courses = getSelectedCourses()
-  courses_cond = ""
-
-  if courses.length > 0
-    conds = []
-    for course in courses
-      conds.push "?curso = <#{course}>"
-    courses_cond = " FILTER(#{conds.join(" || ")}) "
-
-  contexts = getSelectedContexts()
-  contexts_cond = ""
-
-  if contexts.length > 0
-    conds = []
-    for context in contexts
-      conds.push "?context = <#{context}>"
-    contexts_cond = " FILTER(#{conds.join(" || ")}) "
-
-  filteredSearch(courses_cond)
-
 searchCourses = (options) ->
     sparql = sparqlPrefixes+"""
-        SELECT * FROM <http://ucursos.rdfclip.com/> WHERE {
+        SELECT DISTINCT * FROM <http://ucursos.rdfclip.com/> WHERE {
           ?curso rdf:type uchiles:Curso .
           ?curso clips:userLabel ?userLabel .
           ?curso uchiles:codigoCurso ?codigo .
@@ -154,20 +179,27 @@ searchCourses = (options) ->
         LIMIT 10
     """
 
-    if lastQuery
-      lastQuery.abort()
+    if lastCoursesQuery
+      lastCoursesQuery.abort()
 
-    lastQuery = conn.query
+    lastCoursesQuery = conn.query
       query: sparql
       success: (r) =>
         out = []
         results = RDF.getResultSet(r)
         while row = results.fetchRow()
-          out.push
-            type: 'Curso'
-            short_name: row['codigo'].value
-            long_name: row['userLabel'].value
-            uri: row['curso'].value
+          exists = false
+          for x in out
+            if x['uri'] == row['curso'].value
+              exists = true
+              break
+
+          if not exists
+            out.push
+              type: 'Curso'
+              short_name: row['codigo'].value
+              long_name: row['userLabel'].value
+              uri: row['curso'].value
 
         options.success? (out)
 
@@ -184,10 +216,10 @@ searchContext = (options) ->
         LIMIT 10
     """
 
-    if lastQuery
-      lastQuery.abort()
+    if lastContextQuery
+      lastContextQuery.abort()
 
-    lastQuery = conn.query
+    lastContextQuery = conn.query
       query: sparql
       success: (r) =>
         out = []
@@ -204,7 +236,9 @@ searchContext = (options) ->
 getSelectedCourses = ->
   out = []
   for elem in $("[data-course-uri]")
-    out.push $(elem).attr("data-course-uri")
+    out.push
+      uri: $(elem).attr("data-course-uri")
+      codigo: $(elem).attr("data-course-code")
   return out
 
 getSelectedContexts = ->
@@ -213,41 +247,61 @@ getSelectedContexts = ->
     out.push $(elem).attr("data-context-uri")
   return out
 
+suggestTo = false
+
 require [], () ->
 
   $ ->
     $("input").val ""
     $(".btn-search").click ->
       searchFiles()
-      toast getKeywords()
       return false
 
     magic = new MagicTextArea $("input")
     magic.suggestionTemplate = $("#suggest-item-tmpl")
+    searchingFor = false
 
     magic.addInlineSuggest
       trigger: 'NONE'
       refreshList: (word, list) ->
-        toast word
+        window.list = list
+
+        if suggestTo
+          clearTimeout(suggestTo)
 
         options = []
-        if word.length < 2
-          list.setOptions []
-        else
-          searchContext
-            keyword: word
-            success: (newOptions) ->
-              options = options.concat newOptions
+
+        suggest = =>
+          sync = new Synchronizer()
+          sync.when ["courses", "contexts"], =>
+              toast "setting #{options.length} options"
               list.setOptions options
-          searchCourses
-            keyword: word
-            success: (newOptions) ->
-              options = options.concat newOptions
-              list.setOptions options
+
+
+          searchingFor = word
+          if word.length < 2
+            list.setOptions []
+          else
+            searchContext
+              keyword: word
+              success: (newOptions) ->
+                if word == searchingFor
+                  options = options.concat newOptions
+                  sync.ready("contexts")
+
+            searchCourses
+              keyword: word
+              success: (newOptions) ->
+                if word == searchingFor
+                  options = options.concat newOptions
+                  sync.ready("courses")
+
+        suggestTo = setTimeout(suggest, 500)
 
       parseCaretWord: (word, value) ->
         if value.type == "Curso"
           span = $("<span>").html(value.short_name).addClass("entity").attr("data-course-uri", value.uri)
+          span.attr("data-course-code", value.short_name)
         else
           span = $("<span>").html(value.short_name).addClass("entity").attr("data-context-uri", value.uri)
 

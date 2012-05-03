@@ -48,6 +48,9 @@ def xml_to_graph(filename):
     graph = Graph()
 
     for material in files.all("material"):
+        if material.md5 == "d41d8cd98f00b204e9800998ecf8427e":
+            continue
+
         sub = CLIP[material.md5]
         graph.add((sub, RDFS['label'], Literal(material.titulo)))
         graph.add((sub, CLIPS['userLabel'], Literal(material.titulo)))
@@ -55,18 +58,21 @@ def xml_to_graph(filename):
         contexto = UCHILE["contexto_%s" % material.curso.base]
         contexto_userlabel = parse_context(material.curso.base)
         instancia_curso = UCHILE['curso_%s_%s_%s_%s' %
-            (material.curso.codigo, material.curso.anno,
+            (material.curso.codigo.upper(), material.curso.anno,
             material.curso.semestre, material.curso.seccion)]
-        curso = UCHILE["curso_%s" % material.curso.codigo]
+        curso = UCHILE["curso_%s" % material.curso.codigo.upper()]
 
         graph.add((curso, RDF['type'], UCHILES['Curso']))
         graph.add((sub, UCHILES['instanciaCurso'], instancia_curso))
+        graph.add((sub, UCHILES['curso'], curso))
         graph.add((instancia_curso, UCHILES['curso'], curso))
         graph.add((curso, UCHILES['contextoCurso'], contexto))
         graph.add((contexto, RDFS['label'], material.curso.base))
         graph.add((contexto, CLIPS['userLabel'], contexto_userlabel))
-        graph.add((curso, UCHILES['codigoCurso'], material.curso.codigo))
-        graph.add((curso, RDFS['label'], material.curso.codigo))
+        graph.add((curso, UCHILES['codigoCurso'],
+            material.curso.codigo.upper()))
+        graph.add((curso, RDFS['label'],
+            material.curso.codigo.upper()))
         graph.add((curso, CLIPS['userLabel'],
             get_course_user_label(material.curso)))
         graph.add((sub, CLIPS['indirectDownloadLink'], URIRef(material.url)))

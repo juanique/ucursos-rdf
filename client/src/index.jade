@@ -4,9 +4,9 @@ html
   head
     title My Awesome Web Application
     link(rel="stylesheet", type="text/css", href="/css/lib/bootstrap.css")
-    link(rel="stylesheet", type="text/css", href="/css/style.css")
     link(rel="stylesheet", type="text/css", href="/css/magic-textarea.css")
     link(rel="stylesheet", type="text/css", href="/css/dropdown-list.css")
+    link(rel="stylesheet", type="text/css", href="/css/style.css")
 
   body
     .navbar.navbar-fixed-top
@@ -44,14 +44,22 @@ html
             th
             th Nombre
             th Descargar
+            th
         tbody
           {{each(i, row) rows}}
           tr
             td ${i+1}
             td ${row.codigo}
-            td ${row.name}
             td
+              a(href="${row.uri}") ${row.name}
+            td
+              {{if row.link}}
               a(href="${row.link}") U-Cursos
+              {{/if}}
+            td
+              {{if row.directLink}}
+              a(href="${row.directLink}") Descarga Directa
+              {{/if}}
           {{/each}}
 
 
